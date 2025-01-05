@@ -1,23 +1,39 @@
-name: CI Suite
+name: BYOND Build
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
+
+env:
+  BYOND_MAJOR: 515
+  BYOND_MINOR: 1646
+  SPACEMAN_DMM_VERSION: suite-1.9
+
 jobs:
   run_linters:
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Run Linters
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
-          path: $HOME/SpacemanDMM
-          key: ${{ runner.os }}-spacemandmm
+          path: ~/SpacemanDMM
+          key: ${{ runner.os }}-spacemandmm-${{ hashFiles('dependencies.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-spacemandmm-
+      - name: Restore Rust cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-rust-${{ hashFiles('tools/ci/ci_dependencies.sh')}}
+          restore-keys: |
+            ${{ runner.os }}-rust-
       - name: Install Tools
         run: |
           pip3 install setuptools
@@ -36,22 +52,32 @@ jobs:
           tools/bootstrap/python -m mapmerge2.dmm_test
           ~/dreamchecker > ${GITHUB_WORKSPACE}/output-annotations.txt 2>&1
       - name: Annotate Lints
-        uses: yogstation13/DreamAnnotate@v1
+        uses: yogstation13/DreamAnnotate@v2
         if: always()
         with:
           outputFile: output-annotations.txt
 
-  compile_all_maps:
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
-    name: Compile Maps
-    runs-on: ubuntu-20.04
+  OpenDream:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup cache
-        uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - name: Python setup
+        uses: actions/setup-python@v4
         with:
-          path: $HOME/BYOND
-          key: ${{ runner.os }}-byond
+          python-version: '3.x'
+
+  compile_all_maps:
+    if: ( !contains(github.event.head_commit.message, '[ci skip]') )
+    name: Compile Maps
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup cache
+        uses: actions/cache@v4
+        with:
+          path: ~/BYOND
+          key: ${{ runner.os }}-byond-${{ secrets.CACHE_PURGE_KEY }}
       - name: Compile All Maps
         run: |
           bash tools/ci/install_byond.sh
@@ -61,9 +87,10 @@ jobs:
           bash tools/ci/dm.sh -DCIBUILDING -DCITESTING -DALL_MAPS tgstation.dme
 
   run_all_tests:
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql:latest
@@ -73,9 +100,9 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: $HOME/BYOND
           key: ${{ runner.os }}-byond
@@ -101,11 +128,20 @@ jobs:
           bash tools/ci/run_server.sh
 
   test_windows:
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Windows Build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - name: Restore BYOND cache
+        uses: actions/cache@v4
+        with:
+          path: C:\\byond
+          key: ${{ runner.os }}-byond-${{ secrets.CACHE_PURGE_KEY }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ secrets.CACHE_PURGE_KEY }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
       - name: Compile
         run: pwsh tools/ci/build.ps1
       - name: Create artifact
@@ -113,7 +149,7 @@ jobs:
           md deploy
           bash tools/deploy.sh ./deploy
       - name: Deploy artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: deploy
           path: deploy
