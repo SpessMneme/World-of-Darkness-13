@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Grant execute permissions
-        run: chmod -R +x tools/ci
+        run: |
+          chmod -R +x tools/ci
+          chmod -R +x tools/bootstrap
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -23,17 +25,12 @@ jobs:
           key: ${{ runner.os }}-spacemandmm
       - name: Install Tools
         run: |
-          chmod +x tools/ci/install_node.sh
-          chmod +x tools/ci/install_spaceman_dmm.sh
           pip3 install setuptools
           bash tools/ci/install_node.sh
           bash tools/ci/install_spaceman_dmm.sh dreamchecker
           tools/bootstrap/python -c ''
       - name: Run Linters
         run: |
-          chmod +x tools/ci/check_filedirs.sh
-          chmod +x tools/ci/check_changelogs.sh
-          chmod +x tools/ci/check_grep.sh
           bash tools/ci/check_filedirs.sh tgstation.dme
           bash tools/ci/check_changelogs.sh
           find . -name "*.php" -print0 | xargs -0 -n1 php -l
@@ -56,7 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Grant execute permissions
-        run: chmod -R +x tools/ci
+        run: |
+          chmod -R +x tools/ci
+          chmod -R +x tools/bootstrap
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -64,8 +63,6 @@ jobs:
           key: ${{ runner.os }}-byond
       - name: Compile All Maps
         run: |
-          chmod +x tools/ci/install_byond.sh
-          chmod +x tools/ci/dm.sh
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           python3 tools/ci/template_dm_generator.py
@@ -87,7 +84,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Grant execute permissions
-        run: chmod -R +x tools/ci
+        run: |
+          chmod -R +x tools/ci
+          chmod -R +x tools/bootstrap
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -102,16 +101,12 @@ jobs:
           mysql -u root -proot tg_ci_prefixed < SQL/tgstation_schema_prefixed.sql
       - name: Install rust-g
         run: |
-          chmod +x tools/ci/install_rust_g.sh
           sudo dpkg --add-architecture i386
           sudo apt update || true
           sudo apt install -o APT::Immediate-Configure=false libssl1.1:i386
           bash tools/ci/install_rust_g.sh
       - name: Compile and run tests
         run: |
-          chmod +x tools/ci/install_byond.sh
-          chmod +x tools/ci/dm.sh
-          chmod +x tools/ci/run_server.sh
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           tgui/bin/tgui --build
