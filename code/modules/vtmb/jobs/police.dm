@@ -1,5 +1,5 @@
 
-/datum/job/vamp/police_officer
+/datum/job/vamp/police_officer //
 	title = "Police Officer"
 	department_head = list("Police Department")
 	faction = "Vampire"
