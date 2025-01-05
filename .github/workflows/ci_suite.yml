@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: Make scripts executable
         run: |
-          chmod +x tools/bootstrap/python
-          chmod +x tools/bootstrap/node
-          chmod +x tgui/bin/tgui
+          find . -type f -name "*.sh" -exec chmod +x {} \;
+          find . -type f -name "tgui" -exec chmod +x {} \;
+          find tools/bootstrap -type f -not -name "*.bat" -not -name "*.ps1" -not -name "*.pth" -exec chmod +x {} \;
       - name: Setup cache
         uses: actions/cache@v3
         with:
@@ -64,6 +64,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v3
+      - name: Make scripts executable
+        run: |
+          find . -type f -name "*.sh" -exec chmod +x {} \;
+          find . -type f -name "tgui" -exec chmod +x {} \;
+          find tools/bootstrap -type f -not -name "*.bat" -not -name "*.ps1" -not -name "*.pth" -exec chmod +x {} \;
       - name: Setup cache
         uses: actions/cache@v3
         with:
@@ -95,6 +100,11 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v3
+      - name: Make scripts executable
+        run: |
+          find . -type f -name "*.sh" -exec chmod +x {} \;
+          find . -type f -name "tgui" -exec chmod +x {} \;
+          find tools/bootstrap -type f -not -name "*.bat" -not -name "*.ps1" -not -name "*.pth" -exec chmod +x {} \;
       - name: Setup cache
         uses: actions/cache@v3
         with:
