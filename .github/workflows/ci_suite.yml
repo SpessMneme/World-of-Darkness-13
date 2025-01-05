@@ -12,6 +12,7 @@ env:
   BYOND_MINOR: 1645
   SPACEMAN_DMM_VERSION: suite-1.6
   PYTHON_VERSION: 3.6.8
+  NODE_VERSION: 16
 
 jobs:
   run_linters:
@@ -25,6 +26,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -45,6 +50,7 @@ jobs:
           sudo apt-get install python3-pip
           pip3 install setuptools
           pip3 install pillow
+          pip3 install PyYAML
           chmod +x tools/ci/install_node.sh
           chmod +x tools/ci/install_spaceman_dmm.sh
           bash tools/ci/install_node.sh
@@ -57,6 +63,7 @@ jobs:
           bash tools/ci/check_filedirs.sh tgstation.dme
           bash tools/ci/check_changelogs.sh
           find . -name "*.json" -not -path "*/node_modules/*" -print0 | xargs -0 python3 ./tools/json_verifier.py
+          cd tgui && yarn install && cd ..
           tgui/bin/tgui --lint
           bash tools/ci/check_grep.sh
           python3 tools/validate_dme.py tgstation.dme
@@ -79,6 +86,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -88,7 +99,12 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libstdc++6:i386 libssl1.1:i386
+          sudo apt-get install -y libstdc++6:i386
+          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_i386.deb
+          sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_i386.deb
+      - name: Build TGUI
+        run: |
+          cd tgui && yarn install && yarn build && cd ..
       - name: Compile All Maps
         run: |
           chmod +x tools/ci/install_byond.sh
@@ -96,7 +112,6 @@ jobs:
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           python3 tools/ci/template_dm_generator.py
-          tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING -DCITESTING -DALL_MAPS tgstation.dme
 
   run_all_tests:
@@ -118,6 +133,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -127,7 +146,12 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libstdc++6:i386 libssl1.1:i386
+          sudo apt-get install -y libstdc++6:i386
+          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_i386.deb
+          sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_i386.deb
+      - name: Build TGUI
+        run: |
+          cd tgui && yarn install && yarn build && cd ..
       - name: Setup database
         run: |
           sudo systemctl start mysql
@@ -146,7 +170,6 @@ jobs:
           chmod +x tools/ci/run_server.sh
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
-          tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING tgstation.dme
           bash tools/ci/run_server.sh
 
@@ -160,6 +183,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Restore BYOND cache
         uses: actions/cache@v4
         with:
@@ -169,6 +196,12 @@ jobs:
             ${{ runner.os }}-build-${{ secrets.CACHE_PURGE_KEY }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
+      - name: Build TGUI
+        run: |
+          cd tgui
+          yarn install
+          yarn build
+          cd ..
       - name: Compile
         run: |
           pip install pillow
