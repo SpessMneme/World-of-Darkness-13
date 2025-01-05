@@ -16,6 +16,11 @@ jobs:
       checks: write
     steps:
       - uses: actions/checkout@v3
+      - name: Make scripts executable
+        run: |
+          chmod +x tools/bootstrap/python
+          chmod +x tools/bootstrap/node
+          chmod +x tgui/bin/tgui
       - name: Setup cache
         uses: actions/cache@v3
         with:
