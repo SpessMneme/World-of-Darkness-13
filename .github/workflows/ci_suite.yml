@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: $HOME/SpacemanDMM
           key: ${{ runner.os }}-spacemandmm
@@ -28,6 +28,7 @@ jobs:
           tools/bootstrap/python -c ''
       - name: Run Linters
         run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
           bash tools/ci/check_filedirs.sh tgstation.dme
           bash tools/ci/check_changelogs.sh
           find . -name "*.php" -print0 | xargs -0 -n1 php -l
@@ -50,12 +51,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: $HOME/BYOND
           key: ${{ runner.os }}-byond
       - name: Compile All Maps
         run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           python3 tools/ci/template_dm_generator.py
@@ -78,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: $HOME/BYOND
           key: ${{ runner.os }}-byond
@@ -97,6 +99,7 @@ jobs:
           bash tools/ci/install_rust_g.sh
       - name: Compile and run tests
         run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           chmod +x tgui/bin/tgui
