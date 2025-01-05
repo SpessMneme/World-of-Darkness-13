@@ -23,6 +23,8 @@ jobs:
           pip3 install setuptools
           bash tools/ci/install_node.sh
           bash tools/ci/install_spaceman_dmm.sh dreamchecker
+          chmod +x tools/bootstrap/python
+          chmod +x tgui/bin/tgui
           tools/bootstrap/python -c ''
       - name: Run Linters
         run: |
@@ -36,7 +38,7 @@ jobs:
           tools/bootstrap/python -m mapmerge2.dmm_test
           ~/dreamchecker > ${GITHUB_WORKSPACE}/output-annotations.txt 2>&1
       - name: Annotate Lints
-        uses: yogstation13/DreamAnnotate@v1
+        uses: yogstation13/DreamAnnotate@v2
         if: always()
         with:
           outputFile: output-annotations.txt
@@ -57,6 +59,7 @@ jobs:
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
           python3 tools/ci/template_dm_generator.py
+          chmod +x tgui/bin/tgui
           tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING -DCITESTING -DALL_MAPS tgstation.dme
 
@@ -96,6 +99,7 @@ jobs:
         run: |
           bash tools/ci/install_byond.sh
           source $HOME/BYOND/byond/bin/byondsetup
+          chmod +x tgui/bin/tgui
           tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING tgstation.dme
           bash tools/ci/run_server.sh
