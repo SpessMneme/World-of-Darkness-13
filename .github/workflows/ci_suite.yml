@@ -14,6 +14,8 @@ jobs:
     permissions:
       contents: read
       checks: write
+    env:
+      NODE_OPTIONS: --openssl-legacy-provider
     steps:
       - uses: actions/checkout@v3
       - name: Make scripts executable
@@ -62,6 +64,8 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
+    env:
+      NODE_OPTIONS: --openssl-legacy-provider
     steps:
       - uses: actions/checkout@v3
       - name: Make scripts executable
@@ -90,6 +94,8 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
+    env:
+      NODE_OPTIONS: --openssl-legacy-provider
     services:
       mysql:
         image: mysql:8.0
@@ -140,6 +146,8 @@ jobs:
     permissions:
       contents: read
       packages: read
+    env:
+      NODE_OPTIONS: --openssl-legacy-provider
     steps:
       - uses: actions/checkout@v3
       - name: Compile
