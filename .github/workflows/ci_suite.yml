@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup permissions
+        run: |
+          chmod +x tools/bootstrap/python
+          chmod +x tools/ci/*.sh
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -28,6 +32,8 @@ jobs:
           bash tools/ci/install_node.sh
           bash tools/ci/install_spaceman_dmm.sh dreamchecker
           tools/bootstrap/python -c ''
+      - name: Create output directory
+        run: mkdir -p ${{ github.workspace }}/output
       - name: Run Linters
         run: |
           bash tools/ci/check_filedirs.sh tgstation.dme
@@ -38,12 +44,12 @@ jobs:
           bash tools/ci/check_grep.sh
           tools/bootstrap/python -m dmi.test
           tools/bootstrap/python -m mapmerge2.dmm_test
-          ${{ github.workspace }}/dreamchecker > ${{ github.workspace }}/output-annotations.txt 2>&1
+          ${{ github.workspace }}/dreamchecker > ${{ github.workspace }}/output/output-annotations.txt 2>&1
       - name: Annotate Lints
         uses: yogstation13/DreamAnnotate@v2
         if: always()
         with:
-          outputFile: output-annotations.txt
+          outputFile: output/output-annotations.txt
 
   compile_all_maps:
     if: ${{ !contains(github.event.head_commit.message, '[ci skip]') }}
@@ -51,14 +57,25 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Setup permissions
+        run: |
+          chmod +x tools/bootstrap/python
+          chmod +x tools/ci/*.sh
       - name: Setup cache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/BYOND
           key: ${{ runner.os }}-byond-${{ hashFiles('**/dependencies.sh') }}
-      - name: Compile All Maps
+      - name: Install BYOND
         run: |
           bash tools/ci/install_byond.sh
+          echo "${{ github.workspace }}/BYOND/byond/bin" >> $GITHUB_PATH
+      - name: Compile All Maps
+        run: |
           source $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
           python tools/ci/template_dm_generator.py
           tgui/bin/tgui --build
@@ -73,11 +90,20 @@ jobs:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: tg_ci
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Setup permissions
+        run: |
+          chmod +x tools/bootstrap/python
+          chmod +x tools/ci/*.sh
       - name: Setup cache
         uses: actions/cache@v4
         with:
@@ -85,20 +111,21 @@ jobs:
           key: ${{ runner.os }}-byond-${{ hashFiles('**/dependencies.sh') }}
       - name: Setup database
         run: |
-          sudo systemctl start mysql
-          mysql -u root -proot -e 'CREATE DATABASE tg_ci;'
-          mysql -u root -proot tg_ci < SQL/tgstation_schema.sql
-          mysql -u root -proot -e 'CREATE DATABASE tg_ci_prefixed;'
-          mysql -u root -proot tg_ci_prefixed < SQL/tgstation_schema_prefixed.sql
+          mysql -h127.0.0.1 -P3306 -uroot -proot tg_ci < SQL/tgstation_schema.sql
+          mysql -h127.0.0.1 -P3306 -uroot -proot -e 'CREATE DATABASE IF NOT EXISTS tg_ci_prefixed;'
+          mysql -h127.0.0.1 -P3306 -uroot -proot tg_ci_prefixed < SQL/tgstation_schema_prefixed.sql
       - name: Install rust-g
         run: |
           sudo dpkg --add-architecture i386
           sudo apt update || true
           sudo apt install -o APT::Immediate-Configure=false libssl1.1:i386
           bash tools/ci/install_rust_g.sh
-      - name: Compile and run tests
+      - name: Install BYOND
         run: |
           bash tools/ci/install_byond.sh
+          echo "${{ github.workspace }}/BYOND/byond/bin" >> $GITHUB_PATH
+      - name: Compile and run tests
+        run: |
           source $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
           tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING tgstation.dme
@@ -110,11 +137,21 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Setup permissions
+        shell: bash
+        run: |
+          chmod +x tools/bootstrap/python
+          chmod +x tools/ci/*.sh
       - name: Compile
         run: pwsh tools/ci/build.ps1
       - name: Create artifact
+        shell: bash
         run: |
-          md deploy
+          mkdir -p deploy
           bash tools/deploy.sh ./deploy
       - name: Deploy artifact
         uses: actions/upload-artifact@v4
