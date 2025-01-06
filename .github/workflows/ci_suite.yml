@@ -16,27 +16,47 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-      - name: Install Dependencies
+          python-version: '3.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'tgui/package-lock.json'
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgit2-dev python3-dev
-      - name: Setup permissions
+          sudo apt-get install -y libgit2-dev python3-dev php
+      - name: Setup Tool Permissions
         run: |
           chmod +x tools/bootstrap/python
+          chmod +x tools/bootstrap/node
           chmod +x tools/ci/*.sh
-      - name: Setup cache
+          chmod +x tools/deploy.sh
+      - name: Setup Python Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            tools/bootstrap/.cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements.txt') }}
+      - name: Setup SpacemanDMM Cache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/SpacemanDMM
-          key: ${{ runner.os }}-spacemandmm-${{ hashFiles('**/dependencies.sh') }}
-      - name: Install Tools
+          key: ${{ runner.os }}-spacemandmm-${{ hashFiles('tools/ci/install_spaceman_dmm.sh') }}
+      - name: Install Python Requirements
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install pygit2 --no-build-isolation
+          python -m pip install -r tools/requirements.txt
+      - name: Install Tools
+        run: |
           bash tools/ci/install_node.sh
           bash tools/ci/install_spaceman_dmm.sh dreamchecker
           tools/bootstrap/python -c ''
+      - name: Install tgui dependencies
+        working-directory: tgui
+        run: npm ci
       - name: Create output directory
         run: mkdir -p ${{ github.workspace }}/output
       - name: Run Linters
@@ -45,7 +65,7 @@ jobs:
           bash tools/ci/check_changelogs.sh
           find . -name "*.php" -print0 | xargs -0 -n1 php -l
           find . -name "*.json" -not -path "*/node_modules/*" -print0 | xargs -0 python ./tools/json_verifier.py
-          tgui/bin/tgui --lint
+          npm run lint --prefix tgui
           bash tools/ci/check_grep.sh
           tools/bootstrap/python -m dmi.test
           tools/bootstrap/python -m mapmerge2.dmm_test
@@ -65,32 +85,53 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-      - name: Install Dependencies
+          python-version: '3.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'tgui/package-lock.json'
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libgit2-dev python3-dev
-      - name: Setup permissions
+      - name: Setup Tool Permissions
         run: |
           chmod +x tools/bootstrap/python
+          chmod +x tools/bootstrap/node
           chmod +x tools/ci/*.sh
-      - name: Setup cache
+          chmod +x tools/deploy.sh
+      - name: Setup Python Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            tools/bootstrap/.cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements.txt') }}
+      - name: Setup BYOND Cache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/BYOND
-          key: ${{ runner.os }}-byond-${{ hashFiles('**/dependencies.sh') }}
+          key: ${{ runner.os }}-byond-${{ hashFiles('tools/ci/install_byond.sh') }}
+      - name: Install Python Requirements
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r tools/requirements.txt
       - name: Install BYOND
         run: |
           bash tools/ci/install_byond.sh
           echo "$GITHUB_WORKSPACE/BYOND/byond/bin" >> $GITHUB_PATH
-          mkdir -p $GITHUB_WORKSPACE/BYOND/byond/bin
-          touch $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
-          chmod +x $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
+      - name: Install tgui dependencies
+        working-directory: tgui
+        run: npm ci
+      - name: Build tgui
+        working-directory: tgui
+        run: npm run build
       - name: Compile All Maps
         run: |
           export PATH=$GITHUB_WORKSPACE/BYOND/byond/bin:$PATH
           python tools/ci/template_dm_generator.py
-          tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING -DCITESTING -DALL_MAPS tgstation.dme
 
   run_all_tests:
@@ -111,46 +152,64 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-      - name: Install Dependencies
+          python-version: '3.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'tgui/package-lock.json'
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgit2-dev python3-dev
+          sudo apt-get install -y libgit2-dev python3-dev build-essential
           wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
           wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_i386.deb
           sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
           sudo dpkg --add-architecture i386
           sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_i386.deb
-      - name: Setup permissions
+      - name: Setup Tool Permissions
         run: |
           chmod +x tools/bootstrap/python
+          chmod +x tools/bootstrap/node
           chmod +x tools/ci/*.sh
-      - name: Setup cache
+          chmod +x tools/deploy.sh
+      - name: Setup Python Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            tools/bootstrap/.cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements.txt') }}
+      - name: Setup BYOND Cache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/BYOND
-          key: ${{ runner.os }}-byond-${{ hashFiles('**/dependencies.sh') }}
+          key: ${{ runner.os }}-byond-${{ hashFiles('tools/ci/install_byond.sh') }}
+      - name: Install Python Requirements
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r tools/requirements.txt
       - name: Setup database
         run: |
           mysql -h127.0.0.1 -P3306 -uroot -proot tg_ci < SQL/tgstation_schema.sql
           mysql -h127.0.0.1 -P3306 -uroot -proot -e 'CREATE DATABASE IF NOT EXISTS tg_ci_prefixed;'
           mysql -h127.0.0.1 -P3306 -uroot -proot tg_ci_prefixed < SQL/tgstation_schema_prefixed.sql
       - name: Install rust-g
-        run: |
-          sudo apt-get update || true
-          sudo apt-get install -o APT::Immediate-Configure=false build-essential
-          bash tools/ci/install_rust_g.sh
+        run: bash tools/ci/install_rust_g.sh
       - name: Install BYOND
         run: |
           bash tools/ci/install_byond.sh
           echo "$GITHUB_WORKSPACE/BYOND/byond/bin" >> $GITHUB_PATH
-          mkdir -p $GITHUB_WORKSPACE/BYOND/byond/bin
-          touch $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
-          chmod +x $GITHUB_WORKSPACE/BYOND/byond/bin/byondsetup
+      - name: Install tgui dependencies
+        working-directory: tgui
+        run: npm ci
+      - name: Build tgui
+        working-directory: tgui
+        run: npm run build
       - name: Compile and run tests
         run: |
           export PATH=$GITHUB_WORKSPACE/BYOND/byond/bin:$PATH
-          tgui/bin/tgui --build
           bash tools/ci/dm.sh -DCIBUILDING tgstation.dme
           bash tools/ci/run_server.sh
 
@@ -163,16 +222,37 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-      - name: Install Dependencies
+          python-version: '3.9'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'tgui/package-lock.json'
+      - name: Setup Python Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\pip\Cache
+            tools\bootstrap\.cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements.txt') }}
+      - name: Install Python Requirements
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install pygit2 --no-build-isolation
-      - name: Setup permissions
+          python -m pip install -r tools/requirements.txt
+      - name: Setup Tool Permissions
         shell: bash
         run: |
           chmod +x tools/bootstrap/python
+          chmod +x tools/bootstrap/node
           chmod +x tools/ci/*.sh
+          chmod +x tools/deploy.sh
+      - name: Install tgui dependencies
+        working-directory: tgui
+        run: npm ci
+      - name: Build tgui
+        working-directory: tgui
+        run: npm run build
       - name: Compile
         run: pwsh tools/ci/build.ps1
       - name: Create artifact
